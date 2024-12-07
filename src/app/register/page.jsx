@@ -226,7 +226,7 @@ const RegisterPage = () => {
                 } // Handle widget errors
                 onSuccess={(result) =>
                   handleImageUpload(member, "id_back", result)
-                } // Handle successful upload
+                } // Handle successful upl oad
               >
                 {({ open }) => {
                   if (!open) {

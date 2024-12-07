@@ -1,6 +1,5 @@
 import { connectToDb } from "@/lib/utils";
-import Eta from "@/lib/models/Eta"; // Assuming Eta is the model name for your eta schema
-import User from "@/lib/models/User";
+import { Eta, User } from "@/lib/models"; // Assuming Eta is the model name for your eta schema
 import { NextResponse } from "next/server";
 
 export const POST = async (req) => {

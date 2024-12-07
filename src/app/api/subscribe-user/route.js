@@ -1,17 +1,30 @@
+console.log("subscribe-user");
 import { connectToDb } from "@/lib/utils";
-import Eta from "@/lib/models/Eta"; // Assuming Eta is the model name for your eta schema
-import User from "@/lib/models/User";
+import { Eta, User } from "@/lib/models";
 import { NextResponse } from "next/server";
+const crypto = require("crypto");
 
-export const POST = async (req) => {
+function generateUnique4DigitId(phoneNumber) {
+  const digits = phoneNumber.slice(4); // Remove +251
+
+  // Use SHA-256 for hashing
+  const hash = crypto.createHash("sha256").update(digits).digest("hex");
+
+  // Convert the hash to a 4-digit number
+  const numericId = parseInt(hash.slice(0, 4), 16) % 10000;
+  return numericId.toString().padStart(4, "0"); // Ensure it's 4 digits long
+}
+
+export async function POST(req) {
   try {
     // Connect to the database
     await connectToDb();
-    console.log("Connected to the database.");
+    console.log("db.");
 
     // Parse the incoming request body
     const body = await req.json();
     const { userId, paymentImageLink } = body;
+    console.log(userId, paymentImageLink);
 
     if (!userId || !paymentImageLink) {
       return NextResponse.json(
@@ -59,7 +72,7 @@ export const POST = async (req) => {
     await eta.save();
 
     return NextResponse.json(
-      { message: "User successfully subscribed.", eta },
+      { etaNumber: generateUnique4DigitId(user.phoneNumber) },
       { status: 200 }
     );
   } catch (err) {
@@ -69,4 +82,4 @@ export const POST = async (req) => {
       { status: 500 }
     );
   }
-};
+}

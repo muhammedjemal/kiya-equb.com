@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectToDb } from "@/lib/utils";
-import { Agent } from "@/lib/models";
+import { Agent, Payment } from "@/lib/models";
 import mongoose from "mongoose";
 import { User } from "@/lib/models";
 import { revalidatePath } from "next/cache";
@@ -67,11 +67,8 @@ export async function PATCH(req, { params }) {
       throw new Error("Phone number validation failed: " + error.message);
     }
 
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
     try {
-      await Agent.findByIdAndUpdate(id, { agentStatus: "active" }, { session });
+      await Agent.findByIdAndUpdate(id, { agentStatus: "active" });
       const dagna = new User({
         firstName: agent.dagna.firstName,
         lastName: agent.dagna.fatherName,
@@ -119,19 +116,15 @@ export async function PATCH(req, { params }) {
       console.log(tsehafi);
       console.log(sebsabi);
       await sebsabi.save({});
-
-      await session.commitTransaction();
+      revalidatePath("/admin/agents");
 
       return NextResponse.json({ success: true });
     } catch (error) {
-      await session.abortTransaction();
       console.error("Error during transaction:", error);
       return NextResponse.json(
         { success: false, error: "Transaction failed: " + error.message },
         { status: 500 }
       );
-    } finally {
-      session.endSession();
     }
   } catch (error) {
     console.error("Error:", error);
@@ -148,8 +141,8 @@ export async function DELETE(req, { params }) {
     await connectToDb();
     // similarly, just like above in the patch section, when deleting use transaction and delete those 3 users created when approved if it was approved already.
 
-    await Agent.findByIdAndDelete(id);
     await User.deleteMany({ agentId: id });
+    await Agent.findByIdAndDelete(id);
     // also delete all payments with that agentId
     await Payment.deleteMany({ agentId: id });
 

@@ -201,11 +201,8 @@ const etaSchema = new mongoose.Schema(
     etaName: { type: String, required: true },
     etaDescription: { type: String },
     etaAvatar: { type: String },
-    etaStatus: {
-      type: String,
-      enum: ["active", "streamingNow", "expired", "scheduled"],
-      default: "scheduled",
-    },
+    etaAmount: { type: Number },
+
     subscribersList: [
       {
         userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },

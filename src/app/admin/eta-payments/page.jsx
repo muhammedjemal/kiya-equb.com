@@ -154,6 +154,27 @@ const UsersPage = async () => {
       </div>
     );
   }
+  const handleEtaDelete = async () => {
+    "use server";
+    try {
+      // Find the eta document in the database
+      const eta = await Eta.findOne();
+      // delete it
+      if (eta) {
+        await eta.deleteOne();
+        console.log("Eta deleted successfully.");
+        revalidatePath("/admin/eta-payments");
+      }
+    } catch (err) {
+      console.error("Error deleting Eta:", err);
+    }
+  };
+  //     // Delete the eta document
+  //     console.log("Eta deleted successfully.");
+  //   } catch (err) {
+  //     console.error("Error deleting Eta:", err);
+  //   }
+  // };
 
   return (
     <div className={styles.container}>
@@ -166,6 +187,11 @@ const UsersPage = async () => {
 
       {/* Display subscriber list */}
       <div>
+        <form action={handleEtaDelete} className=" ">
+          <button className="text-danger p-2 rounded-md  hover:bg-pink-900 ">
+            Delete Eta
+          </button>
+        </form>
         <h2>Subscribers:</h2>
         {eta.subscribersList.length === 0 ? (
           <h1>No subscribers yet.</h1>

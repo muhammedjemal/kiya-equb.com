@@ -108,13 +108,16 @@ export default function UnpaidChecker() {
     setEqubData([]);
 
     try {
-      const response = await fetch("/api/equbs-missing-payments", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ date }),
-      });
+      const response = await fetch(
+        "https://unpaidback.onrender.com/api/equbs-missing-payments",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ date }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Failed to fetch data");

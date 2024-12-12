@@ -122,7 +122,7 @@ const PaymentsPage = ({ searchParams, params }) => {
       try {
         const dummyEqubIdData = { id: equbId };
         const response = await axios.post(
-          "http://localhost:3000/api/payments-of-equb",
+          "/api/payments-of-equb",
           dummyEqubIdData
         );
 

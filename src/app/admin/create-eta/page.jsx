@@ -78,7 +78,7 @@ const RegisterEtaPage = () => {
           placeholder="Enter a brief description"
           className="text-black"
         />
-        <CldUploadWidget
+        {/* <CldUploadWidget
           uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
           onError={(error) => console.error("Upload Widget Error: ", error)}
           onSuccess={handleImageUpload}
@@ -92,7 +92,7 @@ const RegisterEtaPage = () => {
               Upload Eta Avatar
             </button>
           )}
-        </CldUploadWidget>
+        </CldUploadWidget> */}
         <Button
           type="submit"
           isLoading={loading}

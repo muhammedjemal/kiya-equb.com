@@ -2,6 +2,7 @@ import { connectToDb } from "@/lib/utils";
 import { User, Payment, Equb } from "@/lib/models";
 import ExcelJS from "exceljs";
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 function convertToEthiopianDateMoreEnhanced(gregorianDate) {
   // Define the Ethiopian month names
   const ethiopianMonthNames = [
@@ -94,23 +95,33 @@ export const POST = async (request) => {
 
     const { managerId } = await request.json();
     console.log("Manager ID:", managerId); // Debug log for managerId
+    console.log("Users under manager:"); // Debug log for users
 
     // Fetch the manager details
     const manager = await User.findById(managerId);
-    if (!manager || !manager.managerMembers) {
+    console.log("Users under manager:"); // Debug log for users
+    console.log("Manager:", manager); // Debug log for manager
+    console.log("Manager:", manager.managerMembers); // Debug log for manager
+
+    if (!manager || manager.managerMembers === null) {
+      console.log("Users under manager:"); // Debug log for users
       return NextResponse.json(
         { error: "Manager not found or has no members." },
         { status: 404 }
       );
     }
+    console.log("Users under manager:"); // Debug log for users
 
     // Fetch all users under the manager by matching the 'underManager' field with the manager's ID
-    const usersUnderManager = await User.find({ underManager: managerId });
+    const usersUnderManager = await User.find({
+      underManager: new mongoose.Types.ObjectId(managerId),
+    });
     console.log("Users under manager:", usersUnderManager); // Debug log for users
-
+    console.log("Users under manager:"); // Debug log for users
     // Prepare the Excel workbook
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Manager Report");
+    console.log("Users under manager:"); // Debug log for users
 
     // Add column headers
     worksheet.columns = [
@@ -124,6 +135,7 @@ export const POST = async (request) => {
       { header: "Payments Count", key: "paymentsCount", width: 15 },
       { header: "Last Payment Date", key: "lastPaymentDate", width: 20 },
     ];
+    console.log("Users under manager:"); // Debug log for users
 
     // Iterate through users and add relevant data
     for (const user of usersUnderManager) {
@@ -131,6 +143,7 @@ export const POST = async (request) => {
 
       const equbs = await Equb.find({ owner: user._id });
       console.log(`Equbs found for user: ${equbs.length}`); // Debug log for equbs found
+      console.log("Users under manager:"); // Debug log for users
 
       // Process each equb for the user
       for (const equb of equbs) {
@@ -173,9 +186,12 @@ export const POST = async (request) => {
         });
       }
     }
+    console.log("Users under manager:"); // Debug log for users
 
     // Generate the Excel file
     const buffer = await workbook.xlsx.writeBuffer();
+    console.log("Users under manager:"); // Debug log for users
+
     return new NextResponse(buffer, {
       headers: {
         "Content-Type":

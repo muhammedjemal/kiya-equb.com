@@ -111,3 +111,27 @@ export const POST = async (request) => {
     );
   }
 };
+export const PATCH = async (request) => {
+  try {
+    let { img, id } = await request.json();
+    // find the user by id and update the img
+    const user = await User.findById(id);
+    if (!user) {
+      return NextResponse.json({ error: "User not found" });
+    }
+    user.img = img;
+    const newUser = await user.save();
+    console.log("Avatar updated successfully");
+
+    return NextResponse.json({
+      success: true,
+      message: "Avatar updated successfully",
+    });
+  } catch (err) {
+    console.log("Failed to create user", err);
+    return NextResponse.json(
+      { error: "Failed to create user" },
+      { status: 500 }
+    );
+  }
+};

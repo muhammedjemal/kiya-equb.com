@@ -20,7 +20,7 @@ const fetchUsers = async (q, page, fetchId) => {
     let count;
     let users;
 
-    if (fetchId !== "no") {
+    if (fetchId !== "no" && fetchId?.agent !== true) {
       count = await User.countDocuments({
         $and: [
           { underManager: fetchId },
@@ -41,6 +41,40 @@ const fetchUsers = async (q, page, fetchId) => {
       users = await User.find({
         $and: [
           { underManager: fetchId },
+          {
+            $or: [
+              { firstName: { $regex: regex } },
+              { lastName: { $regex: regex } },
+              { phoneNumber: { $regex: regex } },
+              { motherName: { $regex: regex } },
+            ],
+          },
+        ],
+      })
+        .sort({ createdAt: -1 })
+        .limit(ITEM_PER_PAGE)
+        .skip(ITEM_PER_PAGE * (page - 1));
+    } else if (fetchId?.agent === true) {
+      count = await User.countDocuments({
+        $and: [
+          { agentId: fetchId.fetchId },
+          {
+            $or: [
+              { firstName: { $regex: regex } },
+
+              { lastName: { $regex: regex } },
+
+              { phoneNumber: { $regex: regex } },
+
+              { motherName: { $regex: regex } },
+            ],
+          },
+        ],
+      });
+
+      users = await User.find({
+        $and: [
+          { agentId: fetchId.fetchId },
           {
             $or: [
               { firstName: { $regex: regex } },
@@ -162,6 +196,23 @@ const UsersPage = async ({ searchParams }) => {
       console.log(userLive.collectorOf);
     }
   }
+  if (userLive.isSystemAdmin === true) {
+    if (
+      userLive.role === "sebsabi" ||
+      userLive.role === "dagna" ||
+      userLive.role === "tsehafi"
+    ) {
+      // he is agent admin!,
+      fetchId = { fetchId: userLive.agentId.toString(), agent: true };
+      console.log(userLive.agentId.toString());
+      console.log(userLive.id);
+    } else if (userLive.collectorOf !== null) {
+      // he is collector
+      fetchId = userLive.underManager;
+      console.log(userLive.collectorOf);
+    }
+  }
+
   console.log(userLive.id);
   console.log(userLive.collectorOf);
   console.log(fetchId);
@@ -189,8 +240,8 @@ const UsersPage = async ({ searchParams }) => {
           {users.map((user) => (
             <tr key={user.id}>
               <td>
-                <Link href={`/admin/users/${user.id}`}>
-                  <div className={styles.user}>
+                <div className={styles.user}>
+                  <Link href={user.img || "/noavatar.png"}>
                     <Image
                       src={user.img || "/noavatar.png"}
                       alt=""
@@ -198,9 +249,11 @@ const UsersPage = async ({ searchParams }) => {
                       height={40}
                       className={styles.userImage}
                     />
+                  </Link>
+                  <Link href={`/admin/users/${user.id}`}>
                     {user.firstName} {user.lastName}
-                  </div>
-                </Link>
+                  </Link>
+                </div>
               </td>
               <td>
                 {user.managerMembers !== null

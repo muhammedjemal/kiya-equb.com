@@ -210,13 +210,14 @@ const SingleUserPage = async ({ params, searchParams }) => {
 
   console.log(managers.length);
 
-  let loggedInUser = await auth();
-  if (!loggedInUser) {
+  let loggedInUser2 = await auth();
+  if (!loggedInUser2) {
     return <h1>Please Login first!</h1>;
   }
-  console.log(loggedInUser.user);
-  const id = loggedInUser.user.id;
-  loggedInUser = await User.findById(id);
+  console.log(loggedInUser2.user);
+  const id = loggedInUser2.user.id;
+  const loggedInUser = await User.findById(id);
+  console.log(loggedInUser.role);
   console.log(id);
   console.log(params.id);
   let paramsUser;
@@ -340,23 +341,50 @@ const SingleUserPage = async ({ params, searchParams }) => {
             {/* make Copier element from right-most side from the line using css inline style code */}
             {loggedInUser.id === paramsUser.id ? (
               <>
-                <div className={"flex m-auto flex-col"}>
-                  <a href={paramsUser?.img || "/noavatar.png"}>
-                    <Image
-                      className={styles.userImage}
-                      src={paramsUser?.img || "/noavatar.png"}
-                      alt=""
-                      width="100"
-                      height="100"
-                    />
-                  </a>
+                <div className={"flex m-auto row-col"}>
+                  <div className={"flex m-auto flex-col"}>
+                    <a href={paramsUser?.img || "/noavatar.png"}>
+                      <Image
+                        className={styles.userImage}
+                        src={paramsUser?.img || "/noavatar.png"}
+                        alt=""
+                        width="100"
+                        height="100"
+                      />
+                    </a>
 
-                  <h1>My Account</h1>
+                    <h1>My Account</h1>
+                  </div>
+                  <div
+                    className={"flex m-right flex-col items-end justify-start"}
+                  >
+                    <div className={"flex m-76 flex-row"}>
+                      <Link href={`/admin/users/change-photo/${paramsUser.id}`}>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          height="24px"
+                          viewBox="0 -960 960 960"
+                          width="24px"
+                          fill="#e8eaed"
+                        >
+                          <path d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z" />
+                        </svg>
+                      </Link>
+                    </div>
+                  </div>
                 </div>
               </>
             ) : (
               <Copier2 phone={paramsUser.phoneNumber} />
             )}
+            {(loggedInUser.id === paramsUser.id ||
+              (loggedInUser.isSystemAdmin === true &&
+                loggedInUser.oprator !== true)) &&
+              !loggedInUser.agentId && (
+                <Link href={`/admin/manager-analytics`}>
+                  <button className={styles.button}>Manager Analytics</button>
+                </Link>
+              )}
             <Copier code={paramsUser.id} style={{}} />
             <label style={{ display: "inline-block", width: "100px" }}>
               Referral Code:
@@ -431,22 +459,24 @@ const SingleUserPage = async ({ params, searchParams }) => {
           */}
             {/* if there are managers otherwise say no managers please add at least one manager to make placement for this user */}
             {/* if the user is a collector hide the Update button for him */}
-            {loggedInUser.isSystemAdmin && loggedInUser.oprator !== true && (
-              <>
-                <label>Placement: ⭐</label>
-                <select name="managerId" id="managerId">
-                  {/* if manager.managerMembers array includes the user's id as one of the list */}
-                  <option value="">Select Manager</option>
-                  {managersAll.map((manager) => (
-                    <>
-                      <option value={manager.id}>
-                        {manager.firstName} {manager.lastName}
-                      </option>
-                    </>
-                  ))}
-                </select>
-              </>
-            )}
+            {loggedInUser.isSystemAdmin &&
+              !loggedInUser.agentId &&
+              loggedInUser.oprator !== true && (
+                <>
+                  <label>Placement: ⭐</label>
+                  <select name="managerId" id="managerId">
+                    {/* if manager.managerMembers array includes the user's id as one of the list */}
+                    <option value="">Select Manager</option>
+                    {managersAll.map((manager) => (
+                      <>
+                        <option value={manager.id}>
+                          {manager.firstName} {manager.lastName}
+                        </option>
+                      </>
+                    ))}
+                  </select>
+                </>
+              )}
             {loggedInUser.managerMembers !== null
               ? loggedInUser.id === paramsUser.underManager && (
                   <button>Update</button>
@@ -458,6 +488,7 @@ const SingleUserPage = async ({ params, searchParams }) => {
             paramsUser.collectorOf === null &&
             paramsUser.isSystemAdmin === false &&
             loggedInUser.oprator !== true &&
+            !loggedInUser.agentId &&
             loggedInUser.collectorOf === null && (
               <form action={createEqub} className={styles.form}>
                 <input type="hidden" name="owner" value={paramsUser.id} />
@@ -505,12 +536,14 @@ const SingleUserPage = async ({ params, searchParams }) => {
           )}
           <div>
             {loggedInUser.oprator !== true &&
+              !loggedInUser.agentId &&
               loggedInUser.collectorOf === null && (
                 <h2 style={{ color: "green" }}>
                   Referrals ({refferals.length}):
                 </h2>
               )}
             {loggedInUser.oprator !== true &&
+              !loggedInUser.agentId &&
               loggedInUser.collectorOf === null && (
                 <ol>
                   {refferals.map((refferal, i) => (
@@ -544,678 +577,748 @@ const SingleUserPage = async ({ params, searchParams }) => {
               ) &&
               equbs.map((equb, i) => <EqubDetails equb={equb} key={i} />)}
           </div>
-          <div>
-            {/* sample */}
-            {paramsUser.managerMembers !== null &&
-              loggedInUser.oprator !== true && (
-                <>
-                  <h2 style={{ color: "green" }}>
-                    Today{"'"}s (
-                    {convertToEthiopianDateMoreEnhanced(todaysDate).dayName +
-                      " " +
-                      convertToEthiopianDateMoreEnhanced(todaysDate).day +
-                      "-" +
-                      convertToEthiopianDateMoreEnhanced(todaysDate).month +
-                      "-" +
-                      convertToEthiopianDateMoreEnhanced(todaysDate).year}
-                    ) analytics:
-                  </h2>
 
-                  <Link href={`/admin/users/payments/${paramsUser.id}`}>
-                    <h2>
-                      Manager{"'"}s amount received today=
-                      <b>
+          {!loggedInUser.agentId && (
+            <>
+              <div>
+                {/* sample */}
+                {paramsUser.managerMembers !== null &&
+                  loggedInUser.oprator !== true && (
+                    <>
+                      <br />
+                      <h2 style={{ color: "green" }}>
+                        Today{"'"}s (
+                        {convertToEthiopianDateMoreEnhanced(todaysDate)
+                          .dayName +
+                          " " +
+                          convertToEthiopianDateMoreEnhanced(todaysDate).day +
+                          "-" +
+                          convertToEthiopianDateMoreEnhanced(todaysDate).month +
+                          "-" +
+                          convertToEthiopianDateMoreEnhanced(todaysDate).year}
+                        ) analytics:
+                      </h2>
+
+                      <Link href={`/admin/users/payments/${paramsUser.id}`}>
+                        <h2>
+                          Manager{"'"}s amount received today=
+                          <b>
+                            <CollectorTodaysAmount collector={paramsUser} />
+                          </b>
+                        </h2>
+                        <span>
+                          <i>click to see the payments received</i>
+                        </span>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          height="24px"
+                          viewBox="0 -960 960 960"
+                          width="24px"
+                          fill="green"
+                        >
+                          <path d="m216-160-56-56 464-464H360v-80h400v400h-80v-264L216-160Z" />
+                        </svg>
+                      </Link>
+                      <h2>
+                        Manager{"'"}s collecors received today =
+                        <b>
+                          <CollectorsTodaysAmount mngrId={paramsUser.id} />
+                        </b>
+                      </h2>
+                      <h2>
+                        Total Manager{"'"}s and collectors of the Manager
+                        received today =
+                        <b>
+                          <u>
+                            <CollectorsAndManagerTodaysAmount
+                              mngrId={paramsUser.id}
+                            />
+                          </u>
+                        </b>
+                      </h2>
+
+                      <ManagerCollectors user={paramsUser} />
+                    </>
+                  )}
+
+                {paramsUser.collectorOf !== null &&
+                  loggedInUser.oprator !== true &&
+                  (loggedInUser.collectorOf !== null
+                    ? loggedInUser.id === paramsUser.id
+                    : true) && (
+                    <>
+                      <br />
+                      <h2>
+                        Today (
+                        {convertToEthiopianDateMoreEnhanced(todaysDate)
+                          .dayName +
+                          " " +
+                          convertToEthiopianDateMoreEnhanced(todaysDate).day +
+                          "-" +
+                          convertToEthiopianDateMoreEnhanced(todaysDate).month +
+                          "-" +
+                          convertToEthiopianDateMoreEnhanced(todaysDate).year}
+                        ):
+                      </h2>
+
+                      <h2>Collector{"'"}s money collection status is:</h2>
+                      <Link href={`/admin/users/payments/${paramsUser.id}`}>
                         <CollectorTodaysAmount collector={paramsUser} />
-                      </b>
-                    </h2>
-                    <span>
-                      <i>click to see the payments received</i>
-                    </span>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      height="24px"
-                      viewBox="0 -960 960 960"
-                      width="24px"
-                      fill="green"
-                    >
-                      <path d="m216-160-56-56 464-464H360v-80h400v400h-80v-264L216-160Z" />
-                    </svg>
-                  </Link>
-                  <h2>
-                    Manager{"'"}s collecors received today =
-                    <b>
-                      <CollectorsTodaysAmount mngrId={paramsUser.id} />
-                    </b>
-                  </h2>
-                  <h2>
-                    Total Manager{"'"}s and collectors of the Manager received
-                    today =
-                    <b>
-                      <u>
-                        <CollectorsAndManagerTodaysAmount
-                          mngrId={paramsUser.id}
-                        />
-                      </u>
-                    </b>
-                  </h2>
 
-                  <ManagerCollectors user={paramsUser} />
-                </>
-              )}
-
-            {paramsUser.collectorOf !== null &&
-              loggedInUser.oprator !== true &&
-              (loggedInUser.collectorOf !== null
-                ? loggedInUser.id === paramsUser.id
-                : true) && (
-                <>
-                  <h2>
-                    Today (
-                    {convertToEthiopianDateMoreEnhanced(todaysDate).dayName +
-                      " " +
-                      convertToEthiopianDateMoreEnhanced(todaysDate).day +
-                      "-" +
-                      convertToEthiopianDateMoreEnhanced(todaysDate).month +
-                      "-" +
-                      convertToEthiopianDateMoreEnhanced(todaysDate).year}
-                    ):
-                  </h2>
-
-                  <h2>Collector{"'"}s money collection status is:</h2>
-                  <Link href={`/admin/users/payments/${paramsUser.id}`}>
-                    <CollectorTodaysAmount collector={paramsUser} />
-
-                    <span>
-                      <i>click to see the payments received </i>
-                    </span>
-                  </Link>
-                </>
-              )}
-            {((paramsUser.isSystemAdmin === true &&
-              loggedInUser.oprator !== true) ||
-              (paramsUser.isSystemAdmin === true &&
-                loggedInUser.oprator === true &&
-                loggedInUser.id === paramsUser.id)) && (
-              <>
-                <h2>
-                  Today (
-                  {convertToEthiopianDateMoreEnhanced(todaysDate).dayName +
-                    " " +
-                    convertToEthiopianDateMoreEnhanced(todaysDate).day +
-                    "-" +
-                    convertToEthiopianDateMoreEnhanced(todaysDate).month +
-                    "-" +
-                    convertToEthiopianDateMoreEnhanced(todaysDate).year}
-                  ):
-                </h2>
-                <h2>
-                  {`${paramsUser.oprator === true ? "Oprator" : "Admin"}`}
-                  {"'"}s money collection status is:
-                </h2>
-                <Link href={`/admin/users/payments/${paramsUser.id}`}>
-                  <CollectorTodaysAmount collector={paramsUser} />
-
-                  <span>
-                    <i>click to see the payments received </i>
-                  </span>
-                </Link>
-              </>
-            )}
-          </div>
-          {/* {yesterday status} */}
-          <div>
-            {/* sample */}
-            {paramsUser.managerMembers !== null &&
-              loggedInUser.oprator !== true && (
-                <>
-                  <h2 style={{ color: "green" }}>
-                    Yesterday{"'"}s (
-                    {convertToEthiopianDateMoreEnhanced(yesterdaysDate)
-                      .dayName +
-                      " " +
-                      convertToEthiopianDateMoreEnhanced(yesterdaysDate).day +
-                      "-" +
-                      convertToEthiopianDateMoreEnhanced(yesterdaysDate).month +
-                      "-" +
-                      convertToEthiopianDateMoreEnhanced(yesterdaysDate).year}
-                    ) analytics:
-                  </h2>
-
-                  <Link
-                    href={`/admin/users/yesterdaypayments/${paramsUser.id}`}
-                  >
+                        <span>
+                          <i>click to see the payments received </i>
+                        </span>
+                      </Link>
+                    </>
+                  )}
+                {((paramsUser.isSystemAdmin === true &&
+                  loggedInUser.oprator !== true) ||
+                  (paramsUser.isSystemAdmin === true &&
+                    loggedInUser.oprator === true &&
+                    loggedInUser.id === paramsUser.id)) && (
+                  <>
+                    <br />
                     <h2>
-                      Manager{"'"}s amount received yesterday=
-                      <b>
+                      Today (
+                      {convertToEthiopianDateMoreEnhanced(todaysDate).dayName +
+                        " " +
+                        convertToEthiopianDateMoreEnhanced(todaysDate).day +
+                        "-" +
+                        convertToEthiopianDateMoreEnhanced(todaysDate).month +
+                        "-" +
+                        convertToEthiopianDateMoreEnhanced(todaysDate).year}
+                      ):
+                    </h2>
+                    <h2>
+                      {`${paramsUser.oprator === true ? "Oprator" : "Admin"}`}
+                      {"'"}s money collection status is:
+                    </h2>
+                    <Link href={`/admin/users/payments/${paramsUser.id}`}>
+                      <CollectorTodaysAmount collector={paramsUser} />
+
+                      <span>
+                        <i>click to see the payments received </i>
+                      </span>
+                    </Link>
+                  </>
+                )}
+              </div>
+              {/* {yesterday status} */}
+              <div>
+                {/* sample */}
+                {paramsUser.managerMembers !== null &&
+                  loggedInUser.oprator !== true && (
+                    <>
+                      <br />
+                      <h2 style={{ color: "green" }}>
+                        Yesterday{"'"}s (
+                        {convertToEthiopianDateMoreEnhanced(yesterdaysDate)
+                          .dayName +
+                          " " +
+                          convertToEthiopianDateMoreEnhanced(yesterdaysDate)
+                            .day +
+                          "-" +
+                          convertToEthiopianDateMoreEnhanced(yesterdaysDate)
+                            .month +
+                          "-" +
+                          convertToEthiopianDateMoreEnhanced(yesterdaysDate)
+                            .year}
+                        ) analytics:
+                      </h2>
+
+                      <Link
+                        href={`/admin/users/yesterdaypayments/${paramsUser.id}`}
+                      >
+                        <h2>
+                          Manager{"'"}s amount received yesterday=
+                          <b>
+                            <CollectorTodaysAmount
+                              collector={paramsUser}
+                              day="yesterday"
+                            />
+                          </b>
+                        </h2>
+                        <span>
+                          <i>click to see the payments received</i>
+                        </span>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          height="24px"
+                          viewBox="0 -960 960 960"
+                          width="24px"
+                          fill="green"
+                        >
+                          <path d="m216-160-56-56 464-464H360v-80h400v400h-80v-264L216-160Z" />
+                        </svg>
+                      </Link>
+                      <h2>
+                        Manager{"'"}s collecors received yesterday =
+                        <b>
+                          <CollectorsTodaysAmount
+                            mngrId={paramsUser.id}
+                            day="yesterday"
+                          />
+                        </b>
+                      </h2>
+                      <h2>
+                        Total Manager{"'"}s and collectors of the Manager
+                        received yesterday =
+                        <b>
+                          <u>
+                            <CollectorsAndManagerTodaysAmount
+                              mngrId={paramsUser.id}
+                              day="yesterday"
+                            />
+                          </u>
+                        </b>
+                      </h2>
+
+                      <ManagerCollectors user={paramsUser} day="yesterday" />
+                    </>
+                  )}
+
+                {paramsUser.collectorOf !== null &&
+                  loggedInUser.oprator !== true &&
+                  (loggedInUser.collectorOf !== null
+                    ? loggedInUser.id === paramsUser.id
+                    : true) && (
+                    <>
+                      <br />
+                      <h2>
+                        Yesterday (
+                        {convertToEthiopianDateMoreEnhanced(yesterdaysDate)
+                          .dayName +
+                          " " +
+                          convertToEthiopianDateMoreEnhanced(yesterdaysDate)
+                            .day +
+                          "-" +
+                          convertToEthiopianDateMoreEnhanced(yesterdaysDate)
+                            .month +
+                          "-" +
+                          convertToEthiopianDateMoreEnhanced(yesterdaysDate)
+                            .year}
+                        ):
+                      </h2>
+
+                      <h2>Collector{"'"}s money collection status is:</h2>
+                      <Link
+                        href={`/admin/users/yesterdaypayments/${paramsUser.id}`}
+                      >
                         <CollectorTodaysAmount
                           collector={paramsUser}
                           day="yesterday"
                         />
-                      </b>
+
+                        <span>
+                          <i>click to see the payments received </i>
+                        </span>
+                      </Link>
+                    </>
+                  )}
+                {((paramsUser.isSystemAdmin === true &&
+                  loggedInUser.oprator !== true) ||
+                  (paramsUser.isSystemAdmin === true &&
+                    loggedInUser.oprator === true &&
+                    loggedInUser.id === paramsUser.id)) && (
+                  <>
+                    <br />
+                    <h2>
+                      Yesterday (
+                      {convertToEthiopianDateMoreEnhanced(yesterdaysDate)
+                        .dayName +
+                        " " +
+                        convertToEthiopianDateMoreEnhanced(yesterdaysDate).day +
+                        "-" +
+                        convertToEthiopianDateMoreEnhanced(yesterdaysDate)
+                          .month +
+                        "-" +
+                        convertToEthiopianDateMoreEnhanced(yesterdaysDate).year}
+                      ):
                     </h2>
-                    <span>
-                      <i>click to see the payments received</i>
-                    </span>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      height="24px"
-                      viewBox="0 -960 960 960"
-                      width="24px"
-                      fill="green"
+
+                    <h2>
+                      {`${paramsUser.oprator === true ? "Oprator" : "Admin"}`}
+                      {"'"}s money collection status is:
+                    </h2>
+                    <Link
+                      href={`/admin/users/yesterdaypayments/${paramsUser.id}`}
                     >
-                      <path d="m216-160-56-56 464-464H360v-80h400v400h-80v-264L216-160Z" />
-                    </svg>
-                  </Link>
-                  <h2>
-                    Manager{"'"}s collecors received yesterday =
-                    <b>
-                      <CollectorsTodaysAmount
-                        mngrId={paramsUser.id}
+                      <CollectorTodaysAmount
+                        collector={paramsUser}
                         day="yesterday"
                       />
-                    </b>
-                  </h2>
-                  <h2>
-                    Total Manager{"'"}s and collectors of the Manager received
-                    yesterday =
-                    <b>
-                      <u>
-                        <CollectorsAndManagerTodaysAmount
-                          mngrId={paramsUser.id}
-                          day="yesterday"
-                        />
-                      </u>
-                    </b>
-                  </h2>
 
-                  <ManagerCollectors user={paramsUser} day="yesterday" />
-                </>
-              )}
+                      <span>
+                        <i>click to see the payments received </i>
+                      </span>
+                    </Link>
+                  </>
+                )}
+              </div>
+              {/* {before yesterday status} ///////////////////////////////////////////////////////////*/}
+              <div>
+                {/* sample */}
+                {paramsUser.managerMembers !== null &&
+                  loggedInUser.oprator !== true && (
+                    <>
+                      <br />
+                      <h2 style={{ color: "green" }}>
+                        Before Yesterday{"'"}s (
+                        {convertToEthiopianDateMoreEnhanced(bYesterdaysDate)
+                          .dayName +
+                          " " +
+                          convertToEthiopianDateMoreEnhanced(bYesterdaysDate)
+                            .day +
+                          "-" +
+                          convertToEthiopianDateMoreEnhanced(bYesterdaysDate)
+                            .month +
+                          "-" +
+                          convertToEthiopianDateMoreEnhanced(bYesterdaysDate)
+                            .year}
+                        ) analytics:
+                      </h2>
 
-            {paramsUser.collectorOf !== null &&
-              loggedInUser.oprator !== true &&
-              (loggedInUser.collectorOf !== null
-                ? loggedInUser.id === paramsUser.id
-                : true) && (
-                <>
-                  <h2>
-                    Yesterday (
-                    {convertToEthiopianDateMoreEnhanced(yesterdaysDate)
-                      .dayName +
-                      " " +
-                      convertToEthiopianDateMoreEnhanced(yesterdaysDate).day +
-                      "-" +
-                      convertToEthiopianDateMoreEnhanced(yesterdaysDate).month +
-                      "-" +
-                      convertToEthiopianDateMoreEnhanced(yesterdaysDate).year}
-                    ):
-                  </h2>
+                      <Link
+                        href={`/admin/users/beforeyesterdaypayments/${paramsUser.id}`}
+                      >
+                        <h2>
+                          Manager{"'"}s amount received before yesterday=
+                          <b>
+                            <CollectorTodaysAmount
+                              collector={paramsUser}
+                              day="bYesterday"
+                            />
+                          </b>
+                        </h2>
+                        <span>
+                          <i>click to see the payments received</i>
+                        </span>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          height="24px"
+                          viewBox="0 -960 960 960"
+                          width="24px"
+                          fill="green"
+                        >
+                          <path d="m216-160-56-56 464-464H360v-80h400v400h-80v-264L216-160Z" />
+                        </svg>
+                      </Link>
+                      <h2>
+                        Manager{"'"}s collecors received before yesterday =
+                        <b>
+                          <CollectorsTodaysAmount
+                            mngrId={paramsUser.id}
+                            day="bYesterday"
+                          />
+                        </b>
+                      </h2>
+                      <h2>
+                        Total Manager{"'"}s and collectors of the Manager
+                        received before yesterday =
+                        <b>
+                          <u>
+                            <CollectorsAndManagerTodaysAmount
+                              mngrId={paramsUser.id}
+                              day="bYesterday"
+                            />
+                          </u>
+                        </b>
+                      </h2>
 
-                  <h2>Collector{"'"}s money collection status is:</h2>
-                  <Link
-                    href={`/admin/users/yesterdaypayments/${paramsUser.id}`}
-                  >
-                    <CollectorTodaysAmount
-                      collector={paramsUser}
-                      day="yesterday"
-                    />
+                      <ManagerCollectors user={paramsUser} day="bYesterday" />
+                    </>
+                  )}
 
-                    <span>
-                      <i>click to see the payments received </i>
-                    </span>
-                  </Link>
-                </>
-              )}
-            {((paramsUser.isSystemAdmin === true &&
-              loggedInUser.oprator !== true) ||
-              (paramsUser.isSystemAdmin === true &&
-                loggedInUser.oprator === true &&
-                loggedInUser.id === paramsUser.id)) && (
-              <>
-                <h2>
-                  Yesterday (
-                  {convertToEthiopianDateMoreEnhanced(yesterdaysDate).dayName +
-                    " " +
-                    convertToEthiopianDateMoreEnhanced(yesterdaysDate).day +
-                    "-" +
-                    convertToEthiopianDateMoreEnhanced(yesterdaysDate).month +
-                    "-" +
-                    convertToEthiopianDateMoreEnhanced(yesterdaysDate).year}
-                  ):
-                </h2>
+                {paramsUser.collectorOf !== null &&
+                  loggedInUser.oprator !== true &&
+                  (loggedInUser.collectorOf !== null
+                    ? loggedInUser.id === paramsUser.id
+                    : true) && (
+                    <>
+                      <br />
+                      <h2>
+                        Before Yesterday (
+                        {convertToEthiopianDateMoreEnhanced(bYesterdaysDate)
+                          .dayName +
+                          " " +
+                          convertToEthiopianDateMoreEnhanced(bYesterdaysDate)
+                            .day +
+                          "-" +
+                          convertToEthiopianDateMoreEnhanced(bYesterdaysDate)
+                            .month +
+                          "-" +
+                          convertToEthiopianDateMoreEnhanced(bYesterdaysDate)
+                            .year}
+                        ):
+                      </h2>
 
-                <h2>
-                  {`${paramsUser.oprator === true ? "Oprator" : "Admin"}`}
-                  {"'"}s money collection status is:
-                </h2>
-                <Link href={`/admin/users/yesterdaypayments/${paramsUser.id}`}>
-                  <CollectorTodaysAmount
-                    collector={paramsUser}
-                    day="yesterday"
-                  />
-
-                  <span>
-                    <i>click to see the payments received </i>
-                  </span>
-                </Link>
-              </>
-            )}
-          </div>
-          {/* {before yesterday status} ///////////////////////////////////////////////////////////*/}
-          <div>
-            {/* sample */}
-            {paramsUser.managerMembers !== null &&
-              loggedInUser.oprator !== true && (
-                <>
-                  <h2 style={{ color: "green" }}>
-                    Before Yesterday{"'"}s (
-                    {convertToEthiopianDateMoreEnhanced(bYesterdaysDate)
-                      .dayName +
-                      " " +
-                      convertToEthiopianDateMoreEnhanced(bYesterdaysDate).day +
-                      "-" +
-                      convertToEthiopianDateMoreEnhanced(bYesterdaysDate)
-                        .month +
-                      "-" +
-                      convertToEthiopianDateMoreEnhanced(bYesterdaysDate).year}
-                    ) analytics:
-                  </h2>
-
-                  <Link
-                    href={`/admin/users/beforeyesterdaypayments/${paramsUser.id}`}
-                  >
-                    <h2>
-                      Manager{"'"}s amount received before yesterday=
-                      <b>
+                      <h2>Collector{"'"}s money collection status is:</h2>
+                      <Link
+                        href={`/admin/users/beforeyesterdaypayments/${paramsUser.id}`}
+                      >
                         <CollectorTodaysAmount
                           collector={paramsUser}
                           day="bYesterday"
                         />
-                      </b>
+
+                        <span>
+                          <i>click to see the payments received </i>
+                        </span>
+                      </Link>
+                    </>
+                  )}
+                {((paramsUser.isSystemAdmin === true &&
+                  loggedInUser.oprator !== true) ||
+                  (paramsUser.isSystemAdmin === true &&
+                    loggedInUser.oprator === true &&
+                    loggedInUser.id === paramsUser.id)) && (
+                  <>
+                    <br />
+                    <h2>
+                      2 Days ago (
+                      {convertToEthiopianDateMoreEnhanced(bYesterdaysDate)
+                        .dayName +
+                        " " +
+                        convertToEthiopianDateMoreEnhanced(bYesterdaysDate)
+                          .day +
+                        "-" +
+                        convertToEthiopianDateMoreEnhanced(bYesterdaysDate)
+                          .month +
+                        "-" +
+                        convertToEthiopianDateMoreEnhanced(bYesterdaysDate)
+                          .year}
+                      ):
                     </h2>
-                    <span>
-                      <i>click to see the payments received</i>
-                    </span>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      height="24px"
-                      viewBox="0 -960 960 960"
-                      width="24px"
-                      fill="green"
+
+                    <h2>
+                      {`${paramsUser.oprator === true ? "Oprator" : "Admin"}`}
+                      {"'"}s money collection status is:
+                    </h2>
+                    <Link
+                      href={`/admin/users/beforeyesterdaypayments/${paramsUser.id}`}
                     >
-                      <path d="m216-160-56-56 464-464H360v-80h400v400h-80v-264L216-160Z" />
-                    </svg>
-                  </Link>
-                  <h2>
-                    Manager{"'"}s collecors received before yesterday =
-                    <b>
-                      <CollectorsTodaysAmount
-                        mngrId={paramsUser.id}
+                      <CollectorTodaysAmount
+                        collector={paramsUser}
                         day="bYesterday"
                       />
-                    </b>
-                  </h2>
-                  <h2>
-                    Total Manager{"'"}s and collectors of the Manager received
-                    before yesterday =
-                    <b>
-                      <u>
-                        <CollectorsAndManagerTodaysAmount
-                          mngrId={paramsUser.id}
-                          day="bYesterday"
-                        />
-                      </u>
-                    </b>
-                  </h2>
 
-                  <ManagerCollectors user={paramsUser} day="bYesterday" />
-                </>
-              )}
+                      <span>
+                        <i>click to see the payments received </i>
+                      </span>
+                    </Link>
+                  </>
+                )}
+              </div>
+              {/* {before 3 days status} ///////////////////////////////////////////////////////////*/}
+              <div>
+                {/* sample */}
+                {paramsUser.managerMembers !== null &&
+                  loggedInUser.oprator !== true && (
+                    <>
+                      <br />
+                      <h2 style={{ color: "green" }}>
+                        Before 3 days{"'"} (
+                        {convertToEthiopianDateMoreEnhanced(b3YesterdaysDate)
+                          .dayName +
+                          " " +
+                          convertToEthiopianDateMoreEnhanced(b3YesterdaysDate)
+                            .day +
+                          "-" +
+                          convertToEthiopianDateMoreEnhanced(b3YesterdaysDate)
+                            .month +
+                          "-" +
+                          convertToEthiopianDateMoreEnhanced(b3YesterdaysDate)
+                            .year}
+                        ) analytics:
+                      </h2>
 
-            {paramsUser.collectorOf !== null &&
-              loggedInUser.oprator !== true &&
-              (loggedInUser.collectorOf !== null
-                ? loggedInUser.id === paramsUser.id
-                : true) && (
-                <>
-                  <h2>
-                    Before Yesterday (
-                    {convertToEthiopianDateMoreEnhanced(bYesterdaysDate)
-                      .dayName +
-                      " " +
-                      convertToEthiopianDateMoreEnhanced(bYesterdaysDate).day +
-                      "-" +
-                      convertToEthiopianDateMoreEnhanced(bYesterdaysDate)
-                        .month +
-                      "-" +
-                      convertToEthiopianDateMoreEnhanced(bYesterdaysDate).year}
-                    ):
-                  </h2>
+                      <Link
+                        href={`/admin/users/before3daypayments/${paramsUser.id}`}
+                      >
+                        <h2>
+                          Manager{"'"}s amount received before 3 days=
+                          <b>
+                            <CollectorTodaysAmount
+                              collector={paramsUser}
+                              day="b3day"
+                            />
+                          </b>
+                        </h2>
+                        <span>
+                          <i>click to see the payments received</i>
+                        </span>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          height="24px"
+                          viewBox="0 -960 960 960"
+                          width="24px"
+                          fill="green"
+                        >
+                          <path d="m216-160-56-56 464-464H360v-80h400v400h-80v-264L216-160Z" />
+                        </svg>
+                      </Link>
+                      <h2>
+                        Manager{"'"}s collecors received before 3 days=
+                        <b>
+                          <CollectorsTodaysAmount
+                            mngrId={paramsUser.id}
+                            day="b3day"
+                          />
+                        </b>
+                      </h2>
+                      <h2>
+                        Total Manager{"'"}s and collectors of the Manager
+                        received before 3 days =
+                        <b>
+                          <u>
+                            <CollectorsAndManagerTodaysAmount
+                              mngrId={paramsUser.id}
+                              day="b3day"
+                            />
+                          </u>
+                        </b>
+                      </h2>
 
-                  <h2>Collector{"'"}s money collection status is:</h2>
-                  <Link
-                    href={`/admin/users/beforeyesterdaypayments/${paramsUser.id}`}
-                  >
-                    <CollectorTodaysAmount
-                      collector={paramsUser}
-                      day="bYesterday"
-                    />
+                      <ManagerCollectors user={paramsUser} day="b3day" />
+                    </>
+                  )}
 
-                    <span>
-                      <i>click to see the payments received </i>
-                    </span>
-                  </Link>
-                </>
-              )}
-            {((paramsUser.isSystemAdmin === true &&
-              loggedInUser.oprator !== true) ||
-              (paramsUser.isSystemAdmin === true &&
-                loggedInUser.oprator === true &&
-                loggedInUser.id === paramsUser.id)) && (
-              <>
-                <h2>
-                  Before Yesterday (
-                  {convertToEthiopianDateMoreEnhanced(bYesterdaysDate).dayName +
-                    " " +
-                    convertToEthiopianDateMoreEnhanced(bYesterdaysDate).day +
-                    "-" +
-                    convertToEthiopianDateMoreEnhanced(bYesterdaysDate).month +
-                    "-" +
-                    convertToEthiopianDateMoreEnhanced(bYesterdaysDate).year}
-                  ):
-                </h2>
+                {paramsUser.collectorOf !== null &&
+                  loggedInUser.oprator !== true &&
+                  (loggedInUser.collectorOf !== null
+                    ? loggedInUser.id === paramsUser.id
+                    : true) && (
+                    <>
+                      <br />
+                      <h2>
+                        3 Days ago (
+                        {convertToEthiopianDateMoreEnhanced(b3YesterdaysDate)
+                          .dayName +
+                          " " +
+                          convertToEthiopianDateMoreEnhanced(b3YesterdaysDate)
+                            .day +
+                          "-" +
+                          convertToEthiopianDateMoreEnhanced(b3YesterdaysDate)
+                            .month +
+                          "-" +
+                          convertToEthiopianDateMoreEnhanced(b3YesterdaysDate)
+                            .year}
+                        ):
+                      </h2>
 
-                <h2>
-                  {`${paramsUser.oprator === true ? "Oprator" : "Admin"}`}
-                  {"'"}s money collection status is:
-                </h2>
-                <Link
-                  href={`/admin/users/beforeyesterdaypayments/${paramsUser.id}`}
-                >
-                  <CollectorTodaysAmount
-                    collector={paramsUser}
-                    day="bYesterday"
-                  />
-
-                  <span>
-                    <i>click to see the payments received </i>
-                  </span>
-                </Link>
-              </>
-            )}
-          </div>
-          {/* {before 3 days status} ///////////////////////////////////////////////////////////*/}
-          <div>
-            {/* sample */}
-            {paramsUser.managerMembers !== null &&
-              loggedInUser.oprator !== true && (
-                <>
-                  <h2 style={{ color: "green" }}>
-                    Before 3 days{"'"} (
-                    {convertToEthiopianDateMoreEnhanced(b3YesterdaysDate)
-                      .dayName +
-                      " " +
-                      convertToEthiopianDateMoreEnhanced(b3YesterdaysDate).day +
-                      "-" +
-                      convertToEthiopianDateMoreEnhanced(b3YesterdaysDate)
-                        .month +
-                      "-" +
-                      convertToEthiopianDateMoreEnhanced(b3YesterdaysDate).year}
-                    ) analytics:
-                  </h2>
-
-                  <Link
-                    href={`/admin/users/before3daypayments/${paramsUser.id}`}
-                  >
-                    <h2>
-                      Manager{"'"}s amount received before 3 days=
-                      <b>
+                      <h2>Collector{"'"}s money collection status is:</h2>
+                      <Link
+                        href={`/admin/users/before3daypayments/${paramsUser.id}`}
+                      >
                         <CollectorTodaysAmount
                           collector={paramsUser}
                           day="b3day"
                         />
-                      </b>
+
+                        <span>
+                          <i>click to see the payments received </i>
+                        </span>
+                      </Link>
+                    </>
+                  )}
+                {((paramsUser.isSystemAdmin === true &&
+                  loggedInUser.oprator !== true) ||
+                  (paramsUser.isSystemAdmin === true &&
+                    loggedInUser.oprator === true &&
+                    loggedInUser.id === paramsUser.id)) && (
+                  <>
+                    <br />
+                    <h2>
+                      Before 3 days (
+                      {convertToEthiopianDateMoreEnhanced(b3YesterdaysDate)
+                        .dayName +
+                        " " +
+                        convertToEthiopianDateMoreEnhanced(b3YesterdaysDate)
+                          .day +
+                        "-" +
+                        convertToEthiopianDateMoreEnhanced(b3YesterdaysDate)
+                          .month +
+                        "-" +
+                        convertToEthiopianDateMoreEnhanced(b3YesterdaysDate)
+                          .year}
+                      ):
                     </h2>
-                    <span>
-                      <i>click to see the payments received</i>
-                    </span>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      height="24px"
-                      viewBox="0 -960 960 960"
-                      width="24px"
-                      fill="green"
+
+                    <h2>
+                      {`${paramsUser.oprator === true ? "Oprator" : "Admin"}`}
+                      {"'"}s money collection status is:
+                    </h2>
+                    <Link
+                      href={`/admin/users/before3daypayments/${paramsUser.id}`}
                     >
-                      <path d="m216-160-56-56 464-464H360v-80h400v400h-80v-264L216-160Z" />
-                    </svg>
-                  </Link>
-                  <h2>
-                    Manager{"'"}s collecors received before 3 days=
-                    <b>
-                      <CollectorsTodaysAmount
-                        mngrId={paramsUser.id}
+                      <CollectorTodaysAmount
+                        collector={paramsUser}
                         day="b3day"
                       />
-                    </b>
-                  </h2>
-                  <h2>
-                    Total Manager{"'"}s and collectors of the Manager received
-                    before 3 days =
-                    <b>
-                      <u>
-                        <CollectorsAndManagerTodaysAmount
-                          mngrId={paramsUser.id}
-                          day="b3day"
-                        />
-                      </u>
-                    </b>
-                  </h2>
 
-                  <ManagerCollectors user={paramsUser} day="b3day" />
-                </>
-              )}
+                      <span>
+                        <i>click to see the payments received </i>
+                      </span>
+                    </Link>
+                  </>
+                )}
+              </div>
+              {/* {before 4 days status} ///////////////////////////////////////////////////////////*/}
+              <div>
+                {/* sample */}
+                {paramsUser.managerMembers !== null &&
+                  loggedInUser.oprator !== true && (
+                    <>
+                      <br />
+                      <h2 style={{ color: "green" }}>
+                        Before 4 days{"'"} (
+                        {convertToEthiopianDateMoreEnhanced(b4YesterdaysDate)
+                          .dayName +
+                          " " +
+                          convertToEthiopianDateMoreEnhanced(b4YesterdaysDate)
+                            .day +
+                          "-" +
+                          convertToEthiopianDateMoreEnhanced(b4YesterdaysDate)
+                            .month +
+                          "-" +
+                          convertToEthiopianDateMoreEnhanced(b4YesterdaysDate)
+                            .year}
+                        ) analytics:
+                      </h2>
 
-            {paramsUser.collectorOf !== null &&
-              loggedInUser.oprator !== true &&
-              (loggedInUser.collectorOf !== null
-                ? loggedInUser.id === paramsUser.id
-                : true) && (
-                <>
-                  <h2>
-                    Before Yesterday (
-                    {convertToEthiopianDateMoreEnhanced(b3YesterdaysDate)
-                      .dayName +
-                      " " +
-                      convertToEthiopianDateMoreEnhanced(b3YesterdaysDate).day +
-                      "-" +
-                      convertToEthiopianDateMoreEnhanced(b3YesterdaysDate)
-                        .month +
-                      "-" +
-                      convertToEthiopianDateMoreEnhanced(b3YesterdaysDate).year}
-                    ):
-                  </h2>
+                      <Link
+                        href={`/admin/users/before3daypayments/${paramsUser.id}`}
+                      >
+                        <h2>
+                          Manager{"'"}s amount received before 4 days=
+                          <b>
+                            <CollectorTodaysAmount
+                              collector={paramsUser}
+                              day="b4day"
+                            />
+                          </b>
+                        </h2>
+                        <span>
+                          <i>click to see the payments received</i>
+                        </span>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          height="24px"
+                          viewBox="0 -960 960 960"
+                          width="24px"
+                          fill="green"
+                        >
+                          <path d="m216-160-56-56 464-464H360v-80h400v400h-80v-264L216-160Z" />
+                        </svg>
+                      </Link>
+                      <h2>
+                        Manager{"'"}s collecors received before 4 days=
+                        <b>
+                          <CollectorsTodaysAmount
+                            mngrId={paramsUser.id}
+                            day="b4day"
+                          />
+                        </b>
+                      </h2>
+                      <h2>
+                        Total Manager{"'"}s and collectors of the Manager
+                        received before 4 days =
+                        <b>
+                          <u>
+                            <CollectorsAndManagerTodaysAmount
+                              mngrId={paramsUser.id}
+                              day="b4day"
+                            />
+                          </u>
+                        </b>
+                      </h2>
 
-                  <h2>Collector{"'"}s money collection status is:</h2>
-                  <Link
-                    href={`/admin/users/before3daypayments/${paramsUser.id}`}
-                  >
-                    <CollectorTodaysAmount collector={paramsUser} day="b3day" />
+                      <ManagerCollectors user={paramsUser} day="b4day" />
+                    </>
+                  )}
 
-                    <span>
-                      <i>click to see the payments received </i>
-                    </span>
-                  </Link>
-                </>
-              )}
-            {((paramsUser.isSystemAdmin === true &&
-              loggedInUser.oprator !== true) ||
-              (paramsUser.isSystemAdmin === true &&
-                loggedInUser.oprator === true &&
-                loggedInUser.id === paramsUser.id)) && (
-              <>
-                <h2>
-                  Before 3 days (
-                  {convertToEthiopianDateMoreEnhanced(b3YesterdaysDate)
-                    .dayName +
-                    " " +
-                    convertToEthiopianDateMoreEnhanced(b3YesterdaysDate).day +
-                    "-" +
-                    convertToEthiopianDateMoreEnhanced(b3YesterdaysDate).month +
-                    "-" +
-                    convertToEthiopianDateMoreEnhanced(b3YesterdaysDate).year}
-                  ):
-                </h2>
+                {paramsUser.collectorOf !== null &&
+                  loggedInUser.oprator !== true &&
+                  (loggedInUser.collectorOf !== null
+                    ? loggedInUser.id === paramsUser.id
+                    : true) && (
+                    <>
+                      <br />
+                      <h2>
+                        4 Days ago (
+                        {convertToEthiopianDateMoreEnhanced(b4YesterdaysDate)
+                          .dayName +
+                          " " +
+                          convertToEthiopianDateMoreEnhanced(b4YesterdaysDate)
+                            .day +
+                          "-" +
+                          convertToEthiopianDateMoreEnhanced(b4YesterdaysDate)
+                            .month +
+                          "-" +
+                          convertToEthiopianDateMoreEnhanced(b4YesterdaysDate)
+                            .year}
+                        ):
+                      </h2>
 
-                <h2>
-                  {`${paramsUser.oprator === true ? "Oprator" : "Admin"}`}
-                  {"'"}s money collection status is:
-                </h2>
-                <Link href={`/admin/users/before3daypayments/${paramsUser.id}`}>
-                  <CollectorTodaysAmount collector={paramsUser} day="b3day" />
-
-                  <span>
-                    <i>click to see the payments received </i>
-                  </span>
-                </Link>
-              </>
-            )}
-          </div>
-          {/* {before 4 days status} ///////////////////////////////////////////////////////////*/}
-          <div>
-            {/* sample */}
-            {paramsUser.managerMembers !== null &&
-              loggedInUser.oprator !== true && (
-                <>
-                  <h2 style={{ color: "green" }}>
-                    Before 4 days{"'"} (
-                    {convertToEthiopianDateMoreEnhanced(b4YesterdaysDate)
-                      .dayName +
-                      " " +
-                      convertToEthiopianDateMoreEnhanced(b4YesterdaysDate).day +
-                      "-" +
-                      convertToEthiopianDateMoreEnhanced(b4YesterdaysDate)
-                        .month +
-                      "-" +
-                      convertToEthiopianDateMoreEnhanced(b4YesterdaysDate).year}
-                    ) analytics:
-                  </h2>
-
-                  <Link
-                    href={`/admin/users/before3daypayments/${paramsUser.id}`}
-                  >
-                    <h2>
-                      Manager{"'"}s amount received before 4 days=
-                      <b>
+                      <h2>Collector{"'"}s money collection status is:</h2>
+                      <Link
+                        href={`/admin/users/before4daypayments/${paramsUser.id}`}
+                      >
                         <CollectorTodaysAmount
                           collector={paramsUser}
                           day="b4day"
                         />
-                      </b>
+
+                        <span>
+                          <i>click to see the payments received </i>
+                        </span>
+                      </Link>
+                    </>
+                  )}
+                {((paramsUser.isSystemAdmin === true &&
+                  loggedInUser.oprator !== true) ||
+                  (paramsUser.isSystemAdmin === true &&
+                    loggedInUser.oprator === true &&
+                    loggedInUser.id === paramsUser.id)) && (
+                  <>
+                    <br />
+                    <h2>
+                      Before 4 days (
+                      {convertToEthiopianDateMoreEnhanced(b4YesterdaysDate)
+                        .dayName +
+                        " " +
+                        convertToEthiopianDateMoreEnhanced(b4YesterdaysDate)
+                          .day +
+                        "-" +
+                        convertToEthiopianDateMoreEnhanced(b4YesterdaysDate)
+                          .month +
+                        "-" +
+                        convertToEthiopianDateMoreEnhanced(b4YesterdaysDate)
+                          .year}
+                      ):
                     </h2>
-                    <span>
-                      <i>click to see the payments received</i>
-                    </span>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      height="24px"
-                      viewBox="0 -960 960 960"
-                      width="24px"
-                      fill="green"
+
+                    <h2>
+                      {`${paramsUser.oprator === true ? "Oprator" : "Admin"}`}
+                      {"'"}s money collection status is:
+                    </h2>
+                    <Link
+                      href={`/admin/users/before4daypayments/${paramsUser.id}`}
                     >
-                      <path d="m216-160-56-56 464-464H360v-80h400v400h-80v-264L216-160Z" />
-                    </svg>
-                  </Link>
-                  <h2>
-                    Manager{"'"}s collecors received before 4 days=
-                    <b>
-                      <CollectorsTodaysAmount
-                        mngrId={paramsUser.id}
+                      <CollectorTodaysAmount
+                        collector={paramsUser}
                         day="b4day"
                       />
-                    </b>
-                  </h2>
-                  <h2>
-                    Total Manager{"'"}s and collectors of the Manager received
-                    before 4 days =
-                    <b>
-                      <u>
-                        <CollectorsAndManagerTodaysAmount
-                          mngrId={paramsUser.id}
-                          day="b4day"
-                        />
-                      </u>
-                    </b>
-                  </h2>
 
-                  <ManagerCollectors user={paramsUser} day="b4day" />
-                </>
-              )}
-
-            {paramsUser.collectorOf !== null &&
-              loggedInUser.oprator !== true &&
-              (loggedInUser.collectorOf !== null
-                ? loggedInUser.id === paramsUser.id
-                : true) && (
-                <>
-                  <h2>
-                    Before Yesterday (
-                    {convertToEthiopianDateMoreEnhanced(b4YesterdaysDate)
-                      .dayName +
-                      " " +
-                      convertToEthiopianDateMoreEnhanced(b4YesterdaysDate).day +
-                      "-" +
-                      convertToEthiopianDateMoreEnhanced(b4YesterdaysDate)
-                        .month +
-                      "-" +
-                      convertToEthiopianDateMoreEnhanced(b4YesterdaysDate).year}
-                    ):
-                  </h2>
-
-                  <h2>Collector{"'"}s money collection status is:</h2>
-                  <Link
-                    href={`/admin/users/before4daypayments/${paramsUser.id}`}
-                  >
-                    <CollectorTodaysAmount collector={paramsUser} day="b4day" />
-
-                    <span>
-                      <i>click to see the payments received </i>
-                    </span>
-                  </Link>
-                </>
-              )}
-            {((paramsUser.isSystemAdmin === true &&
-              loggedInUser.oprator !== true) ||
-              (paramsUser.isSystemAdmin === true &&
-                loggedInUser.oprator === true &&
-                loggedInUser.id === paramsUser.id)) && (
-              <>
-                <h2>
-                  Before 4 days (
-                  {convertToEthiopianDateMoreEnhanced(b4YesterdaysDate)
-                    .dayName +
-                    " " +
-                    convertToEthiopianDateMoreEnhanced(b4YesterdaysDate).day +
-                    "-" +
-                    convertToEthiopianDateMoreEnhanced(b4YesterdaysDate).month +
-                    "-" +
-                    convertToEthiopianDateMoreEnhanced(b4YesterdaysDate).year}
-                  ):
-                </h2>
-
-                <h2>
-                  {`${paramsUser.oprator === true ? "Oprator" : "Admin"}`}
-                  {"'"}s money collection status is:
-                </h2>
-                <Link href={`/admin/users/before4daypayments/${paramsUser.id}`}>
-                  <CollectorTodaysAmount collector={paramsUser} day="b4day" />
-
-                  <span>
-                    <i>click to see the payments received </i>
-                  </span>
-                </Link>
-              </>
-            )}
-          </div>
+                      <span>
+                        <i>click to see the payments received </i>
+                      </span>
+                    </Link>
+                  </>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </>

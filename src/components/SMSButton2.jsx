@@ -1,13 +1,29 @@
-import { Payment } from "@/lib/models";
+import { Agent, Payment, User } from "@/lib/models";
 import { connectToDb } from "@/lib/utils";
 import styles from "@/app/ui/dashboard/users/users.module.css";
 
-export const SMSButton = async ({ payment, phoneNum, firstName, lastName }) => {
+export const SMSButton = async ({ payment, phoneNum }) => {
   await connectToDb();
-  // get the user using the payment.
+
+  // get the user using the payment.userId
+
+  const { firstName, lastName } = await User.findById(payment.userId);
+  console.log(firstName, lastName);
+
+  // get the agent using the payment.agentId
+
+  const agent = await Agent.findById(payment.agentId);
+  let multiplier;
+  if (agent.equbType === "monthly") {
+    multiplier = 30;
+  } else if (agent.equbType === "weekly") {
+    multiplier = 7;
+  } else if (agent.equbType === "daily") {
+    multiplier = 1;
+  }
   const getEarlyDate = async (payment) => {
     "use server";
-    let equbId = payment.forEqub;
+    let equbId = payment.userId;
     function convertToEthiopianDateMoreEnhanced(gregorianDate) {
       // Define the Ethiopian month names
       const ethiopianMonthNames = [
@@ -107,7 +123,7 @@ export const SMSButton = async ({ payment, phoneNum, firstName, lastName }) => {
       let earliestPayment;
       try {
         earliestPayment = await Payment.findOne({
-          forEqub: equbId,
+          userId: equbId,
         })
           .sort({ createdAt: 1 }) // Sort by createdAt in ascending order
           .exec(); // Execute the query
@@ -126,7 +142,7 @@ export const SMSButton = async ({ payment, phoneNum, firstName, lastName }) => {
 
       // Calculate the number of payments made before the current payment
       const numberOfPaymentsLessThanCurrent = await Payment.countDocuments({
-        forEqub: equbId,
+        userId: equbId,
         status: "received",
         createdAt: {
           $lt: currentPaymentDate,
@@ -136,7 +152,7 @@ export const SMSButton = async ({ payment, phoneNum, firstName, lastName }) => {
       // Calculate the date for the current payment
       const nextDayDate = new Date(earliestPaymentDate);
       nextDayDate.setDate(
-        nextDayDate.getDate() + numberOfPaymentsLessThanCurrent
+        nextDayDate.getDate() + multiplier * numberOfPaymentsLessThanCurrent
       );
 
       const theDate = nextDayDate;

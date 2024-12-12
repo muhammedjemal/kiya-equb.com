@@ -3,6 +3,7 @@ import { connectToDb } from "@/lib/utils";
 import Link from "next/link";
 const getPayer = async (paymentId) => {
   "use server";
+  // console.log(paymentId.toString());
   try {
     // Example: Fetch Equb count for the user
     console.log("kj");
@@ -12,16 +13,23 @@ const getPayer = async (paymentId) => {
     // console.log(userId);
     // console.log("kj");
 
-    const payment = await Payment.findById(paymentId);
-    if (payment !== undefined) {
-      console.log(payment.amount);
-    }
-    const equbId = payment.forEqub;
-    // find the user which has the equb id inside its array of activeEqubs of the user
-    const equb = await Equb.findById(equbId);
-    const userId = equb.owner;
-    const user = await User.findById(userId);
+    // const payment = await Payment.findById(paymentId);
+    // if (payment !== undefined) {
+    //   console.log(payment.amount);
+    // }
+    // const equbId = payment.forEqub;
+    // // find the user which has the equb id inside its array of activeEqubs of the user
+    // const equb = await Equb.findById(equbId);
+    // const userId = equb.owner;
+    console.log(paymentId.toString());
+    const usrId = paymentId.toString();
+    console.log(typeof usrId);
+    const user = await User.findById(usrId);
+    console.log(typeof user);
+
+    console.log(user);
     const firstName = user.firstName;
+    console.log(firstName);
     const lastName = user.lastName;
     const id = user.id;
     return { firstName, lastName, id };

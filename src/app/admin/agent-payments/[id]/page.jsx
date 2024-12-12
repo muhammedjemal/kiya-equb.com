@@ -10,23 +10,24 @@ import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { PaymentReceiver } from "@/components/PaymentReceiver";
 import Payer from "@/components/Payer";
-import { SMSButton } from "@/components/SMSButton";
+import { SMSButton } from "@/components/SMSButton2";
 import { PaymentDate } from "@/components/PaymentDate";
 import BhB from "./client";
 import BhB2 from "./client2";
 import Pagination from "@/app/ui/dashboard/pagination/pagination";
+var equb;
 const fetchPayments = async (page, equbId) => {
   const ITEM_PER_PAGE = 10;
   await connectToDb();
   try {
     let count;
     let payments;
-    count = await Payment.countDocuments({ forEqub: equbId });
+    count = await Payment.countDocuments({ userId: equbId });
     // count = await Payment.estimatedDocumentCount();
 
     payments = await Payment.aggregate([
       {
-        $match: { forEqub: equbId },
+        $match: { userId: equbId },
       },
 
       {
@@ -364,37 +365,30 @@ const createPayment = async (formData) => {
   revalidatePath("/admin/payments");
   revalidatePath("/admin/payments/[id]");
 };
-const getPhoneNumber = async function (equbId) {
-  "use server";
-  await connectToDb();
-  // find the user which has the equb id inside its array of activeEqubs of the user
+// const getPhoneNumber = async function (equbId) {
+//   "use server";
+//   await connectToDb();
+//   // find the user which has the equb id inside its array of activeEqubs of the user
 
-  const theEqub = await Equb.findById(equbId);
-  const userId = theEqub.owner;
-  const user = await User.findById(userId);
-  const firstName = user.firstName;
-  const lastName = user.lastName;
-  const phoneN = user.phoneNumber;
-  console.log(phoneN);
-  return {
-    phoneNum: phoneN,
-    userUnderMgr: user.underManager,
-    firstName,
-    lastName,
-  };
-};
+//   const theEqub = await User.find({ agentId: equbId });
+//   const userId = theEqub.owner;
+//   const user = await User.findById(userId);
+//   const phoneN = user.phoneNumber;
+//   console.log(phoneN);
+//   return { phoneNum: phoneN, userUnderMgr: user.underManager };
+// };
 const UsersPage = async ({ searchParams, params }) => {
   const page = searchParams?.page || 1;
 
   const equbId = params.id;
   await connectToDb();
 
-  const equb = await Equb.findById(equbId);
-
+  equb = await User.findById(equbId);
+  console.log(equb);
   if (!equb) {
     return (
       <div className={styles.container}>
-        <h1>Equb not found</h1>
+        <h1>User not found!</h1>
       </div>
     );
   }
@@ -408,10 +402,23 @@ const UsersPage = async ({ searchParams, params }) => {
 
   console.log(payments);
 
-  const { phoneNum, userUnderMgr, firstName, lastName } = await getPhoneNumber(
-    equbId
-  );
-  console.log(firstName, lastName);
+  // const { phoneNum, userUnderMgr } = await getPhoneNumber(equbId);
+  console.log(equb);
+
+  console.log(equb.phoneNumber);
+  // equb = equb.toObject(); // Convert to plain object
+  console.log(typeof equb); // Should log 'object'
+  // console.log(equb instanceof mongoose.Document); // Should log 'true' for Mongoose documents
+
+  // console.log(equb[phoneNum]);
+
+  console.log(equb.phoneNumber);
+  // const equb = await Equb.findById(id); // Assuming `Equb` is your Mongoose model
+
+  const phoneNum = equb.phoneNumber;
+
+  const userUnderMgr = equb.underManager;
+  console.log(userUnderMgr);
   console.log(phoneNum);
   function convertToEthiopianDateMoreEnhanced(gregorianDate) {
     // Define the Ethiopian month names
@@ -507,15 +514,12 @@ const UsersPage = async ({ searchParams, params }) => {
 
   return (
     <div className={styles.container}>
-      <Suspense fallback={<div>Loading...</div>}>
-        <Owner equbId={equbId} />
-      </Suspense>
-      <h1>Equb Name: {equb.name}</h1>
-      <h1>Equb Type: {equb.type}</h1>
-      <h1>Equb Amount: {equb.amount}</h1>
+      {/* <Suspense fallback={<div>Loading...</div>}> */}
+      {/* <Owner equbId={equbId} /> */}
+      {/* </Suspense> */}
       <div className={styles.top}>
         {/* <Search placeholder="Search for a user..." /> */}
-        <form action={createPayment}>
+        {/* <form action={createPayment}>
           <input type="hidden" name="equbId" id="equbId" value={equbId} />
           <input
             type="hidden"
@@ -551,7 +555,7 @@ const UsersPage = async ({ searchParams, params }) => {
 
           {""}
           <button className={` ${styles.green}`}>Confirm</button>
-        </form>
+        </form> */}
       </div>
       <table className={styles.table}>
         <thead>
@@ -648,12 +652,7 @@ const UsersPage = async ({ searchParams, params }) => {
                   {((payment.status === "pending" &&
                     payment.to === userLive.id) ||
                     userLive.isSystemAdmin === true) && (
-                    <SMSButton
-                      phoneNum={phoneNum}
-                      payment={payment}
-                      firstName={firstName}
-                      lastName={lastName}
-                    />
+                    <SMSButton phoneNum={equb.phoneNumber} payment={payment} />
                   )}
                   {<PaymentDate phoneNum={phoneNum} payment={payment} />}
                 </div>

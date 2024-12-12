@@ -1,6 +1,6 @@
 import Pagination from "@/app/ui/dashboard/pagination/pagination";
 import styles from "@/app/ui/dashboard/users/users.module.css";
-import { User, Payment } from "@/lib/models";
+import { User, Payment, Equb } from "@/lib/models";
 import { connectToDb } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
@@ -11,44 +11,27 @@ import { PaymentReceiver } from "@/components/PaymentReceiver";
 // import { SendSMS } from "@/components/SendSMS";
 let payer;
 
-const fetchPayments = async (q, page, payer, myVar) => {
-  let ITEM_PER_PAGE = 10;
-  if (myVar === "oprator") {
-    ITEM_PER_PAGE = 25;
-  }
+const fetchPayments = async (q, page, payer) => {
+  const ITEM_PER_PAGE = 10;
 
   try {
     await connectToDb();
     let count;
     let payments;
 
+    // Count documents based on the presence of payer
     if (payer) {
-      // If payer is defined, count documents with 'to: payer'
-      count = await Payment.countDocuments({ to: payer });
+      // Count payments where 'agentId' matches payer
+      count = await Payment.countDocuments({ agentId: payer });
     } else {
-      // If payer is not defined, get an estimated count of all documents
-      count = await Payment.estimatedDocumentCount();
+      // Count payments where 'seen' is true
+      count = await Payment.countDocuments({ seen: true });
     }
+
     let pipeline = [
       {
-        $addFields: {
-          sortField: {
-            $cond: {
-              if: {
-                $and: [
-                  { $ne: ["$startDate", null] }, // Ensure startDate is not null
-                  "$isStartDay", // Ensure isStartDay is true
-                ],
-              },
-              then: "$startDate", // Use startDate for sorting if condition is true
-              else: "$createdAt", // Use createdAt otherwise
-            },
-          },
-        },
-      },
-      {
         $sort: {
-          sortField: -1, // Sort by 'sortField' in descending order (newest first)
+          createdAt: -1, // Sort by 'createdAt' in descending order (newest first)
         },
       },
       {
@@ -59,10 +42,17 @@ const fetchPayments = async (q, page, payer, myVar) => {
       },
     ];
 
+    // Match condition based on the presence of payer
     if (payer) {
       pipeline.unshift({
         $match: {
-          to: payer,
+          agentId: payer, // Match payments with the specific payer's agentId
+        },
+      });
+    } else {
+      pipeline.unshift({
+        $match: {
+          seen: true, // Match payments where seen is true
         },
       });
     }
@@ -88,18 +78,25 @@ const UsersPage = async ({ searchParams }) => {
   const userLive = await User.findById(user.id);
 
   console.log(userLive);
+  console.log(userLive.role);
+  // console.log(userLive.agentId.toString());
+  console.log(userLive._agentId);
 
-  if (!(userLive.isSystemAdmin === true)) {
+  if (
+    userLive.role === "dagna" ||
+    userLive.role === "sebsabi" ||
+    userLive.role === "tsehafi"
+  ) {
     // set payer to the id of the user
-    payer = userLive.id;
-  }
-  let myVar;
-  if (userLive.oprator === true) {
-    // set payer to the id of the user
-    myVar = "oprator";
+
+    payer = userLive.agentId.toString();
+    console.log(payer);
+    console.log(userLive._agentId);
+    console.log(userLive.agentId);
+    console.log(userLive.agentId);
   }
   /////////
-  const { count, payments } = await fetchPayments(q, page, payer, myVar);
+  const { count, payments } = await fetchPayments(q, page, payer);
   /////////////////////////////////////////////
   function convertToEthiopianDateMoreEnhanced(gregorianDate) {
     // Define the Ethiopian month names
@@ -215,7 +212,9 @@ const UsersPage = async ({ searchParams }) => {
                       className={styles.userImageWallet}
                     />
                   </Link>
-                  <Link href={`/admin/payments/${payment.forEqub}`}>
+                  <Link
+                    href={`/admin/agent-payments/${payment.userId.toString()}`}
+                  >
                     {payment.amount + " Birr"}
                   </Link>
                 </div>
@@ -246,7 +245,8 @@ const UsersPage = async ({ searchParams }) => {
                   ).year}
               </td>
               <td>
-                <Payer paymentId={payment._id} />
+                <h1>{payment.firstName}</h1>
+                <Payer paymentId={payment.userId} />
               </td>
               <td>
                 {" "}
@@ -257,7 +257,9 @@ const UsersPage = async ({ searchParams }) => {
               <td>{payment.status}</td>
               <td>
                 <div className={styles.buttons}>
-                  <Link href={`/admin/payments/${payment.forEqub}`}>
+                  <Link
+                    href={`/admin/agent-payments/${payment.userId.toString()}`}
+                  >
                     <button className={`${styles.button} ${styles.view}`}>
                       View More
                     </button>

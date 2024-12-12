@@ -11,11 +11,8 @@ import { PaymentReceiver } from "@/components/PaymentReceiver";
 // import { SendSMS } from "@/components/SendSMS";
 let payer;
 
-const fetchPayments = async (q, page, payer, myVar) => {
-  let ITEM_PER_PAGE = 10;
-  if (myVar === "oprator") {
-    ITEM_PER_PAGE = 25;
-  }
+const fetchPayments = async (q, page, payer) => {
+  const ITEM_PER_PAGE = 10;
 
   try {
     await connectToDb();
@@ -59,13 +56,11 @@ const fetchPayments = async (q, page, payer, myVar) => {
       },
     ];
 
-    if (payer) {
-      pipeline.unshift({
-        $match: {
-          to: payer,
-        },
-      });
-    }
+    pipeline.unshift({
+      $match: {
+        to: null,
+      },
+    });
 
     payments = await Payment.aggregate(pipeline);
 
@@ -93,13 +88,8 @@ const UsersPage = async ({ searchParams }) => {
     // set payer to the id of the user
     payer = userLive.id;
   }
-  let myVar;
-  if (userLive.oprator === true) {
-    // set payer to the id of the user
-    myVar = "oprator";
-  }
   /////////
-  const { count, payments } = await fetchPayments(q, page, payer, myVar);
+  const { count, payments } = await fetchPayments(q, page, payer);
   /////////////////////////////////////////////
   function convertToEthiopianDateMoreEnhanced(gregorianDate) {
     // Define the Ethiopian month names

@@ -44,10 +44,13 @@ function validatePhoneNumber(phoneNumber) {
 export async function PATCH(req, { params }) {
   const { id } = params;
   const hashedPassword = await bcryptjs.hash("123", 10);
+  const session = await mongoose.startSession();
+  session.startTransaction(); // Start the transaction
 
   try {
     await connectToDb();
-    const agent = await Agent.findById(id);
+
+    const agent = await Agent.findById(id).session(session);
 
     if (!agent) {
       throw new Error("Agent not found");
@@ -68,7 +71,9 @@ export async function PATCH(req, { params }) {
     }
 
     try {
-      await Agent.findByIdAndUpdate(id, { agentStatus: "active" });
+      await Agent.findByIdAndUpdate(id, { agentStatus: "active" }).session(
+        session
+      );
       const dagna = new User({
         firstName: agent.dagna.firstName,
         lastName: agent.dagna.fatherName,
@@ -111,16 +116,20 @@ export async function PATCH(req, { params }) {
         isSystemAdmin: true,
       });
 
-      await dagna.save({});
-      await tsehafi.save({});
+      await dagna.save({ session });
+      await tsehafi.save({ session });
       console.log(tsehafi);
       console.log(sebsabi);
-      await sebsabi.save({});
+      await sebsabi.save({ session });
+      await session.commitTransaction();
+
       revalidatePath("/admin/agents");
 
       return NextResponse.json({ success: true });
     } catch (error) {
       console.error("Error during transaction:", error);
+      await session.abortTransaction(); // Abort the transaction if any error occurs
+
       return NextResponse.json(
         { success: false, error: "Transaction failed: " + error.message },
         { status: 500 }
@@ -132,6 +141,8 @@ export async function PATCH(req, { params }) {
       { success: false, error: "Update failed: " + error.message },
       { status: 500 }
     );
+  } finally {
+    session.endSession(); // End the session to clean up
   }
 }
 

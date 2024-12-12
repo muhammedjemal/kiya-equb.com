@@ -52,6 +52,7 @@ const userSchema = new mongoose.Schema( // avoid default values
     activeEqubs: { type: [String], default: [] }, // delit
     collectorOf: { type: String, default: null }, // string or null, id of the manager under whom collecting
     managerMembers: { type: [String], default: null }, // list of ids of users of the memebers of the manager(if current user is a manager) otherwise null (user is not a manager)
+    agentIdList: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   },
   { timestamps: true }
 );
@@ -61,7 +62,8 @@ const paymentSchema = new mongoose.Schema(
     from: { type: String },
     to: { type: String }, // id of a admin or manager or a collector (note: if manualy the ##client paying it will be the ###verifier but if the ###receiver-admin/collector/manager himself recieved it will be the ##reciever)
     forEqub: { type: String }, // id of an equb the payment is being made
-
+    userId: { type: String }, // id of the user who made the payment
+    agentId: { type: String }, // id of the agent which act as equb
     date: { type: Date },
     isStartDay: { type: Boolean, default: false },
     startDate: { type: Date },
@@ -86,6 +88,15 @@ const equbSchema = new mongoose.Schema(
     amount: { type: Number },
     startDate: { type: Date },
     endDate: { type: Date },
+  },
+  { timestamps: true }
+);
+const transactionSchema = new mongoose.Schema(
+  {
+    incomeOrPayment: { type: String, enum: ["out", "in"] }, // paying out from the asset of the company or income to the company
+    reasonOfTransaction: { type: String },
+    amount: { type: Number },
+    phoneNumber: { type: String },
   },
   { timestamps: true }
 );
@@ -185,13 +196,6 @@ const agentSchema = new mongoose.Schema(
       enum: ["active", "passive", "frozen"],
       default: "passive",
     },
-    claimedUsersIdList: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-    unClaimedUsersIdList: [
-      { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    ],
-    membershipRequeststedUsersIdList: [
-      { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    ],
   },
   { timestamps: true }
 );
@@ -275,5 +279,8 @@ export const User = mongoose.models?.User || mongoose.model("User", userSchema);
 export const Payment =
   mongoose.models?.Payment || mongoose.model("Payment", paymentSchema);
 export const Equb = mongoose.models?.Equb || mongoose.model("Equb", equbSchema);
+export const Transaction =
+  mongoose.models?.Transaction ||
+  mongoose.model("Transaction", transactionSchema, "transactions");
 export const Agent =
   mongoose.models?.Agent || mongoose.model("Agent", agentSchema);

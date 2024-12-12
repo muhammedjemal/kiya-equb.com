@@ -1,22 +1,67 @@
 import { auth } from "@/lib/auth";
-import { Equb, Payment, User } from "@/lib/models";
+import { Equb, Payment, Transaction, User } from "@/lib/models";
 import { connectToDb } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import BhB from "./client";
 
 const EqubDetails = async ({ equb }) => {
-  const handleDelete = async (formData) => {
-    "use server";
-    const { id } = Object.fromEntries(formData);
-    // Implement delete functionality here
-    console.log("Delete Equb");
-    await connectToDb();
-    console.log("Delete Equb");
-    await Payment.deleteMany({ forEqub: id }); // Adjust the field name based on your schema
+  // get count payments of this equb
+  const countOfPayments = await Payment.countDocuments({ forEqub: equb._id });
+  console.log(countOfPayments);
+  // find the equb owner
+  const owner = await User.findById(equb.owner);
+  console.log(owner.firstName);
+  console.log(owner.LastName);
 
-    await Equb.findByIdAndDelete(id);
-    console.log("Delete Equb");
+  const handleComplete = async (formData) => {
+    "use server";
+    const { equbId, fee } = Object.fromEntries(formData);
+    // Implement delete functionality here
+    console.log("startung");
+    await connectToDb();
+    // find equb
+    const equb = await Equb.findById(equbId);
+
+    console.log(equb.name);
+    // create new transaction using the Trandsaction model with incomeOrPayment, reasonOfTransaction and amount
+    const inTransactionBecauseWeMadeThemToPayFeeForOurServices =
+      new Transaction({
+        incomeOrPayment: "in",
+        reasonOfTransaction: `Fee payment from ${
+          owner.firstName ? owner.firstName : "Unknown User"
+        } ${owner.lastName ? owner.lastName : ""} for equb: ${equb.name} `,
+        amount: fee,
+        phoneNumber: owner.phoneNumber,
+      });
+    await inTransactionBecauseWeMadeThemToPayFeeForOurServices.save();
+
+    // calculate all the total amount of payments of the equb and save the transaction as goingout for us because we giving the money to them
+    const totalAmountOfPayments = await Payment.aggregate([
+      {
+        $match: { forEqub: equbId },
+      },
+      {
+        $group: {
+          _id: null,
+          totalAmount: { $sum: "$amount" },
+        },
+      },
+    ]);
+
+    const outTransactionBecauseWeGaveTheMoneyToThem = new Transaction({
+      incomeOrPayment: "out",
+      reasonOfTransaction: `Equb payment  ${
+        owner.firstName ? owner.firstName : "Unknown User"
+      } ${owner.lastName ? owner.lastName : ""} for equb: ${equb.name}`,
+      amount: totalAmountOfPayments[0].totalAmount,
+      phoneNumber: owner.phoneNumber,
+    });
+    await outTransactionBecauseWeGaveTheMoneyToThem.save();
+    // now delete all payments of the equb
+    await Payment.deleteMany({ forEqub: equbId });
+
+    console.log("completed transaction");
     revalidatePath("/admin/equbs");
     revalidatePath("/admin/users/");
     revalidatePath("/admin/users/[id]");
@@ -158,19 +203,52 @@ const EqubDetails = async ({ equb }) => {
           convertToEthiopianDateMoreEnhanced(equb.endDate)?.month + " "}
         {equb.endDate && convertToEthiopianDateMoreEnhanced(equb.endDate)?.year}{" "}
       </div>
-      <div style={styles.field}>
+      {/* <div style={styles.field}>
         <strong>Payments : </strong>
         <Link style={styles.fieldButton} href={`/admin/payments/${equb?._id}`}>
           Show Payments
         </Link>
-      </div>
+      </div> */}
+      {/* best green button with all interactive actions and animations like hover, focus, dimention, border etc usig tailwindCSS classnames: */}
+      <Link href={`/admin/payments/${equb?._id}`}>
+        <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ">
+          <div>Show Payments </div>
+          {countOfPayments === 30 && "Today is the last day of payments"}
+          {countOfPayments === 29 && "Today is the 29th day of payments"}
+          {countOfPayments === 28 && "Today is the 28th day of payments"}
+        </button>
+      </Link>
+      <br />
+      <br />
       {((userLive.collectorOf === null && userLive.oprator !== true) ||
         (userLive.isSystemAdmin === true && userLive.oprator !== true)) && (
-        // <form action={handleDelete}>
-        //   <input type="hidden" value={equb?._id} name="id" />
-        //   <button style={styles.deleteButton}>⚠ Delete Equb</button>
-        // </form>
+        <form action={handleComplete}>
+          <input type="hidden" value={equb?._id} name="equbId" />
+          {/* { input numer-only} */}
+          <input
+            type="number"
+            name="fee"
+            placeholder="Amount of Fee"
+            className="w-1/2 p-2 border border-gray-300 rounded-md text-black "
+          />
 
+          <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ">
+            Complete Equb
+          </button>
+        </form>
+      )}
+
+      <br />
+      <br />
+
+      <Link href={`/admin/equb-analytics//${equb?._id}`}>
+        <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ">
+          <div>Calculate total payments</div>
+        </button>
+      </Link>
+
+      {((userLive.collectorOf === null && userLive.oprator !== true) ||
+        (userLive.isSystemAdmin === true && userLive.oprator !== true)) && (
         <BhB equb={equb} />
       )}
     </div>

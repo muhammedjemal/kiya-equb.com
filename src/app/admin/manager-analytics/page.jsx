@@ -15,11 +15,16 @@ const ManagerReport = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/generate-report", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ managerId }),
-      });
+      const response = await fetch(
+        // "http://localhost:51691/api/generate-report",
+        "https://kback.onrender.com/api/generate-report",
+        {
+          // const response = await fetch("/api/generate-report", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ managerId }),
+        }
+      );
       console.log(response);
 
       if (!response.ok) {

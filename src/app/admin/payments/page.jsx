@@ -100,6 +100,7 @@ const UsersPage = async ({ searchParams }) => {
   }
   /////////
   const { count, payments } = await fetchPayments(q, page, payer, myVar);
+  console.log(payments[0]);
   /////////////////////////////////////////////
   function convertToEthiopianDateMoreEnhanced(gregorianDate) {
     // Define the Ethiopian month names
@@ -196,7 +197,6 @@ const UsersPage = async ({ searchParams }) => {
           <tr>
             <td>Amount</td>
             <td>Payment Date</td>
-            <td>Name of the Equber</td>
             <td>Payment Receiver</td>
             <td>Status</td>
           </tr>
@@ -244,9 +244,6 @@ const UsersPage = async ({ searchParams }) => {
                       ? payment.startDate
                       : payment.createdAt
                   ).year}
-              </td>
-              <td>
-                <Payer paymentId={payment._id} />
               </td>
               <td>
                 {" "}

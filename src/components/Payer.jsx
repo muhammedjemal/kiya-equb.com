@@ -42,6 +42,7 @@ const getPayer = async (paymentId) => {
 };
 const Payer = async ({ paymentId }) => {
   console.log(paymentId);
+  console.log("paymesntId");
   const res = await getPayer(paymentId);
 
   return (

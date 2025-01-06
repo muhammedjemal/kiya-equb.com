@@ -558,7 +558,6 @@ const UsersPage = async ({ searchParams, params }) => {
           <tr>
             <td>Amount</td>
             <td>Payment Date</td>
-            <td>Name of the Equber</td>
             <td>Payment Receiver</td>
             <td>Status</td>
           </tr>
@@ -604,10 +603,6 @@ const UsersPage = async ({ searchParams, params }) => {
                       ? payment.startDate
                       : payment.createdAt
                   ).year}
-              </td>
-              <td>
-                {" "}
-                <Payer paymentId={payment._id} />
               </td>
               <td>
                 <Suspense fallback={<div>Loading...</div>}>

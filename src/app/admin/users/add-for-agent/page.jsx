@@ -8,7 +8,7 @@ import { connectToDb } from "@/lib/utils";
 // import the bcryptjs
 import bcryptjs from "bcryptjs";
 import { revalidatePath } from "next/cache";
-
+console.log("testing");
 const createUser = async (formData) => {
   "use server";
   let {
@@ -19,6 +19,7 @@ const createUser = async (formData) => {
     password,
     role,
     managerId,
+    agentId,
   } = Object.fromEntries(formData);
   function validatePhoneNumber(phoneNumber) {
     // Check if phoneNumber is a string
@@ -145,6 +146,7 @@ const createUser = async (formData) => {
       isSystemAdmin: false,
       collectorOf: null,
       refferedBy: "",
+      agentId,
     });
   }
 
@@ -196,7 +198,10 @@ const SingleUserPage = async () => {
           <label>Password:</label>
           <input type="text" name="password" />
           {/* if current user is not admin the following two will be hidden: */}
-          {user.isSystemAdmin && (
+          {user.role.includes("a") && (
+            <input type="hidden" name="agentId" value={userLive1.agentId} />
+          )}
+          {user.isSystemAdmin && !user.role.includes("a") && (
             <>
               <label>Role: ⭐</label>
               <select name="role" id="role">
@@ -214,7 +219,7 @@ const SingleUserPage = async () => {
           // for admin this option will be hidden
           */}
           {/* if the current user is already a collector or manager make placement under them not let them choose, only admin can*/}
-          {user.isSystemAdmin ? (
+          {user.isSystemAdmin && !user.role.includes("a") ? (
             <>
               <label>Placement: ⭐</label>
               <select name="managerId" id="placement">

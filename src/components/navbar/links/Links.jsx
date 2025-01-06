@@ -86,7 +86,7 @@ const Links = ({ session, isAdminOrManagerOrCollector }) => {
     },
     {
       title: "Dashboard",
-      path: `/admin/users/${session?.user.id}`,
+      path: `/admin/users/${session?.user?.id}`,
     },
   ];
 
@@ -106,7 +106,7 @@ const Links = ({ session, isAdminOrManagerOrCollector }) => {
               <NavLink
                 item={{
                   title: "Dashboard",
-                  path: `/admin/users/${session?.user.id}`,
+                  path: `/admin/users/${session?.user?.id}`,
                 }}
               />
             )}

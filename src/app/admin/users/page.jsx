@@ -223,7 +223,11 @@ const UsersPage = async ({ searchParams }) => {
     <div className={styles.container}>
       <div className={styles.top}>
         <Search placeholder="Search a user with first, last, mother name or phone number..." />
-        <Link href="/admin/users/add">
+        <Link
+          href={`/admin/users/${
+            userLive?.role?.includes("a") ? "add-for-agent" : "add"
+          }`}
+        >
           <button className={styles.addButton}>Add New</button>
         </Link>
       </div>
